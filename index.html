@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>AeroTraffic AI - Responsive Smart CCTV & Traffic Management</title>
+  <style>
+    :root {
+      --bg-dark: #0a0e17;
+      --panel-bg: #111827;
+      --accent-blue: #38bdf8;
+      --accent-green: #22c55e;
+      --accent-red: #ef4444;
+      --accent-yellow: #f59e0b;
+      --border-color: #1f2937;
+      --text-muted: #9ca3af;
+      --text-main: #f3f4f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation Header */
+    header {
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--accent-green);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    /* Fluid Responsive Dashboard Grid */
+    .dashboard {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 2fr 1.2fr 1fr;
+      gap: 16px;
+      padding: 16px;
+      width: 100%;
+    }
+
+    /* Screen Breakpoints for Different Devices */
+    @media (max-width: 1100px) {
+      .dashboard {
+        grid-template-columns: 1fr 1fr;
+      }
+      .card-cctv {
+        grid-column: span 2;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        overflow-y: auto;
+      }
+      .dashboard {
+        grid-template-columns: 1fr;
+        padding: 10px;
+        gap: 12px;
+      }
+      .card-cctv {
+        grid-column: span 1;
+      }
+    }
+
+    .card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    /* Responsive CCTV Canvas Wrapper */
+    .video-viewport {
+      position: relative;
+      width: 100%;
+      /* Maintains a natural 16:9 widescreen highway aspect ratio */
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #273549;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .camera-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: clamp(0.65rem, 1.5vw, 0.75rem);
+      border-left: 3px solid var(--accent-blue);
+      line-height: 1.4;
+      pointer-events: none;
+    }
+
+    /* Adaptive Analytics Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .metric-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .metric-val {
+      font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+      font-weight: 700;
+      margin: 2px 0;
+    }
+
+    .metric-sub {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    /* Adaptive Signal Control */
+    .signal-box {
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .traffic-lights {
+      display: flex;
+      gap: 6px;
+      background: #000;
+      padding: 6px 10px;
+      border-radius: 20px;
+    }
+
+    .light {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      opacity: 0.2;
+      transition: opacity 0.3s, box-shadow 0.3s;
+    }
+
+    .light.red { background: var(--accent-red); }
+    .light.amber { background: var(--accent-yellow); }
+    .light.green { background: var(--accent-green); }
+
+    .light.active {
+      opacity: 1;
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    /* Logs & Notifications */
+    .logs-container {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 180px;
+      max-height: 400px;
+    }
+
+    .log-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      border-left: 3px solid;
+      background: rgba(255, 255, 255, 0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .log-item.alert {
+      border-color: var(--accent-red);
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .log-item.info {
+      border-color: var(--accent-blue);
+      background: rgba(56, 189, 248, 0.06);
+    }
+
+    .log-time {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    /* Buttons */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: auto;
+    }
+
+    button {
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: 0.2s ease;
+      touch-action: manipulation;
+    }
+
+    .btn-alert { background: var(--accent-red); color: #fff; }
+    .btn-corridor { background: var(--accent-green); color: #000; }
+    .btn-secondary { background: #374151; color: #fff; }
+    button:hover { opacity: 0.85; }
+    button:active { transform: scale(0.98); }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand">
+      <div class="dot" style="background: var(--accent-blue);"></div>
+      <h1>AeroTraffic AI Operations</h1>
+      <span style="font-size: 0.75rem; color: var(--text-muted);">Highway & Toll Gate Vision</span>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <div class="status-badge">
+        <span class="dot"></span> AI Edge: Auto-Scaled
+      </div>
+      <div id="liveClock" style="font-family: monospace; font-size: 0.8rem;">00:00:00</div>
+    </div>
+  </header>
+
+  <!-- Responsive Dashboard Grid -->
+  <div class="dashboard">
+
+    <!-- Card 1: Adaptive CCTV Stream -->
+    <div class="card card-cctv">
+      <div class="card-title">
+        <span>CAM-04 • Approach Corridor</span>
+        <span id="canvasDim" style="color: var(--accent-blue); font-size: 0.7rem; font-family: monospace;">Scaling...</span>
+      </div>
+      <div class="video-viewport" id="viewport">
+        <canvas id="cctvCanvas"></canvas>
+        <div class="camera-overlay">
+          LOCATION: EXPRESSWAY TOLL CORRIDOR<br>
+          DETECTION ENGINE: YOLOv8-NANO (EDGE FP16)<br>
+          TARGETS TRACKED: <span id="overlayCount" style="color: var(--accent-yellow);">0</span>
+        </div>
+      </div>
+      <div style="margin-top: 8px; display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); flex-wrap: wrap;">
+        <span>✓ Aspect Ratio: Locked 16:9 Dynamic</span>
+        <span>✓ Retina / High-DPI Adjusted</span>
+      </div>
+    </div>
+
+    <!-- Card 2: Telemetry & Controls -->
+    <div class="card">
+      <div class="card-title">Traffic Telemetry & Predictions</div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-sub">Active Vehicle Count</div>
+          <div class="metric-val" id="activeVehicles">0</div>
+          <div class="metric-sub" style="color: var(--accent-green);">Optimal Density</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-sub">Estimated Toll Wait</div>
+          <div class="metric-val" id="waitTime">14s</div>
+          <div class="metric-sub">Rolling Avg</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-sub">Mean Highway Speed</div>
+          <div class="metric-val" id="avgSpeed">46 km/h</div>
+          <div class="metric-sub">Limit: 60 km/h</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-sub">Incident Risk Index</div>
+          <div class="metric-val" id="riskLevel" style="color: var(--accent-green);">LOW</div>
+          <div class="metric-sub">ST-GCN Predictor</div>
+        </div>
+      </div>
+
+      <div class="signal-box">
+        <div>
+          <div style="font-weight: 600; font-size: 0.8rem;">Adaptive Signal Unit</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted);" id="signalTimer">Green Phase: Dynamic</div>
+        </div>
+        <div class="traffic-lights">
+          <div class="light red" id="lightRed"></div>
+          <div class="light amber" id="lightAmber"></div>
+          <div class="light green active" id="lightGreen"></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn-corridor" onclick="activateGreenCorridor()">🚑 Clear Emergency Green Corridor</button>
+        <button class="btn-alert" onclick="simulateIncident()">⚠️ Trigger Pileup / Hazard Event</button>
+        <button class="btn-secondary" onclick="resetFlow()">🔄 Reset Normal AI Flow</button>
+      </div>
+    </div>
+
+    <!-- Card 3: Dispatch & Official Logs -->
+    <div class="card">
+      <div class="card-title">
+        <span>Official Alert Stream</span>
+        <span style="font-size: 0.65rem; color: var(--accent-blue);">WebHook / SMS</span>
+      </div>
+
+      <div class="logs-container" id="logContainer">
+        <div class="log-item info">
+          <span class="log-time">System Init</span>
+          <span>Responsive viewport initialized. Edge AI stream synchronized with local device display matrix.</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Live Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("liveClock").innerText = now.toTimeString().split(' ')[0];
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Canvas Responsive Auto-Ratio Engine
+    const canvas = document.getElementById("cctvCanvas");
+    const ctx = canvas.getContext("2d");
+    const viewport = document.getElementById("viewport");
+    let displayWidth = 0;
+    let displayHeight = 0;
+
+    function resizeCanvasToDisplay() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = viewport.getBoundingClientRect();
+      
+      displayWidth = rect.width;
+      displayHeight = rect.height;
+
+      // Match physical drawing buffer with High-DPI screen resolution
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+
+      // Normalize canvas coordinate space to CSS pixels
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+
+      document.getElementById("canvasDim").innerText = 
+        `${Math.round(rect.width)}x${Math.round(rect.height)} [DPR ${dpr.toFixed(1)}]`;
+    }
+
+    // Use ResizeObserver for instant ratio adjustments on resize/orientation change
+    const resizeObserver = new ResizeObserver(() => {
+      resizeCanvasToDisplay();
+    });
+    resizeObserver.observe(viewport);
+
+    // Dynamic Vehicle Simulation using Relative Coordinates (0.0 to 1.0)
+    // This allows the scene to look identical whether on an iPhone or a 4K TV.
+    const vehicleClasses = [
+      { type: "Car", relW: 0.05, relH: 0.12, color: "#38bdf8", speed: 0.0035 },
+      { type: "Truck", relW: 0.07, relH: 0.18, color: "#f59e0b", speed: 0.0022 },
+      { type: "Bus", relW: 0.065, relH: 0.16, color: "#a855f7", speed: 0.0026 },
+      { type: "Bike", relW: 0.03, relH: 0.07, color: "#ec4899", speed: 0.0045 }
+    ];
+
+    let vehicles = [];
+    let isAccidentSimulated = false;
+
+    function spawnVehicle() {
+      if (vehicles.length > 12) return;
+      const t = vehicleClasses[Math.floor(Math.random() * vehicleClasses.length)];
+      const lanes = [0.28, 0.50, 0.72]; // Lanes expressed in percentage width
+      const laneX = lanes[Math.floor(Math.random() * lanes.length)] + (Math.random() * 0.04 - 0.02);
+
+      vehicles.push({
+        id: "TN" + Math.floor(1000 + Math.random() * 9000),
+        relX: laneX,
+        relY: -0.2, // Spawn above screen
+        relW: t.relW,
+        relH: t.relH,
+        color: t.color,
+        type: t.type,
+        speed: t.speed + (Math.random() * 0.0008 - 0.0004),
+        stopped: false
+      });
+    }
+
+    setInterval(spawnVehicle, 1100);
+
+    // Render CCTV Simulation Loop
+    function render() {
+      const W = displayWidth;
+      const H = displayHeight;
+
+      if (W === 0 || H === 0) {
+        requestAnimationFrame(render);
+        return;
+      }
+
+      // Asphalt background
+      ctx.fillStyle = "#1e293b";
+      ctx.fillRect(0, 0, W, H);
+
+      // Road boundary borders
+      ctx.strokeStyle = "#334155";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([]);
+      ctx.strokeRect(W * 0.15, 0, W * 0.7, H);
+
+      // Lane dividers (Dashed)
+      ctx.strokeStyle = "#cbd5e1";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([H * 0.04, H * 0.03]);
+      ctx.beginPath();
+      ctx.moveTo(W * 0.38, 0);
+      ctx.lineTo(W * 0.38, H);
+      ctx.moveTo(W * 0.62, 0);
+      ctx.lineTo(W * 0.62, H);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Stop Line / Virtual Detection Zone
+      ctx.strokeStyle = "#ef4444";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(W * 0.15, H * 0.75);
+      ctx.lineTo(W * 0.85, H * 0.75);
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(239, 68, 68, 0.4)";
+      ctx.font = `bold ${Math.max(9, Math.floor(H * 0.026))}px monospace`;
+      ctx.fillText("VIRTUAL DETECTION ZONE (TOLL / STOP LINE)", W * 0.16, H * 0.73);
+
+      // Draw & Update Vehicles
+      for (let i = vehicles.length - 1; i >= 0; i--) {
+        let v = vehicles[i];
+
+        if (!v.stopped) {
+          v.relY += v.speed;
+        }
+
+        const vx = v.relX * W;
+        const vy = v.relY * H;
+        const vw = v.relW * W;
+        const vh = v.relH * H;
+
+        // Vehicle Shape
+        ctx.fillStyle = v.color;
+        ctx.fillRect(vx, vy, vw, vh);
+
+        // AI Object Bounding Box
+        ctx.strokeStyle = "#22c55e";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(vx - 3, vy - 3, vw + 6, vh + 6);
+
+        // Dynamic Text Tag
+        const fontSize = Math.max(8, Math.floor(H * 0.024));
+        ctx.font = `${fontSize}px monospace`;
+        ctx.fillStyle = "rgba(0,0,0,0.85)";
+        ctx.fillRect(vx - 3, vy - (fontSize + 6), vw + 24, fontSize + 4);
+        ctx.fillStyle = "#22c55e";
+        ctx.fillText(`${v.type} 98%`, vx, vy - 4);
+
+        // Recycle offscreen vehicles
+        if (v.relY > 1.2) {
+          vehicles.splice(i, 1);
+        }
+      }
+
+      // Incident Hazard Overlay (Responsive Coordinates)
+      if (isAccidentSimulated) {
+        const hazardX = W * 0.35;
+        const hazardY = H * 0.38;
+        const hazardW = W * 0.32;
+        const hazardH = H * 0.28;
+
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.strokeRect(hazardX, hazardY, hazardW, hazardH);
+        ctx.fillStyle = "rgba(239,68,68,0.35)";
+        ctx.fillRect(hazardX, hazardY, hazardW, hazardH);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `bold ${Math.max(10, Math.floor(H * 0.035))}px sans-serif`;
+        ctx.fillText("⚠️ COLLISION DETECTED", hazardX + 8, hazardY + (hazardH * 0.5));
+        ctx.setLineDash([]);
+      }
+
+      document.getElementById("overlayCount").innerText = vehicles.length;
+      document.getElementById("activeVehicles").innerText = vehicles.length;
+
+      requestAnimationFrame(render);
+    }
+
+    requestAnimationFrame(render);
+
+    // Logging function
+    function addLog(message, type = "info") {
+      const logContainer = document.getElementById("logContainer");
+      const item = document.createElement("div");
+      item.className = `log-item ${type}`;
+
+      const now = new Date().toTimeString().split(' ')[0];
+      item.innerHTML = `
+        <span class="log-time">${now} • DISPATCH MSG</span>
+        <span>${message}</span>
+      `;
+      logContainer.prepend(item);
+    }
+
+    // Simulation Handlers
+    function simulateIncident() {
+      isAccidentSimulated = true;
+      vehicles.forEach((v, idx) => {
+        if (idx < 5) v.stopped = true;
+      });
+
+      document.getElementById("riskLevel").innerText = "CRITICAL";
+      document.getElementById("riskLevel").style.color = "var(--accent-red)";
+      document.getElementById("waitTime").innerText = "14m+";
+      document.getElementById("avgSpeed").innerText = "3 km/h";
+
+      addLog("🚨 ACCIDENT DETECTED: Multi-vehicle stall on Lane 2. Automated emergency alerts dispatched to Patrol & Ambulance!", "alert");
+    }
+
+    function activateGreenCorridor() {
+      document.getElementById("lightRed").classList.remove("active");
+      document.getElementById("lightAmber").classList.remove("active");
+      document.getElementById("lightGreen").classList.add("active");
+
+      document.getElementById("signalTimer").innerText = "GREEN CORRIDOR ENGAGED";
+      document.getElementById("signalTimer").style.color = "var(--accent-green)";
+
+      vehicles.forEach(v => {
+        v.stopped = false;
+        v.speed = 0.009; // Speed burst through corridor
+      });
+
+      addLog("🚑 GREEN CORRIDOR: Signals locked to Green for approaching emergency vehicle. Traffic cleared ahead.", "info");
+    }
+
+    function resetFlow() {
+      isAccidentSimulated = false;
+      vehicles.forEach(v => {
+        v.stopped = false;
+        v.speed = 0.0035;
+      });
+
+      document.getElementById("riskLevel").innerText = "LOW";
+      document.getElementById("riskLevel").style.color = "var(--accent-green)";
+      document.getElementById("waitTime").innerText = "14s";
+      document.getElementById("avgSpeed").innerText = "46 km/h";
+      document.getElementById("signalTimer").innerText = "Green Phase: Dynamic";
+      document.getElementById("signalTimer").style.color = "var(--text-muted)";
+
+      addLog("Traffic returned to automated balance schedule.", "info");
+    }
+
+    // Signal Light Cycler
+    setInterval(() => {
+      if (isAccidentSimulated) return;
+
+      const r = document.getElementById("lightRed");
+      const a = document.getElementById("lightAmber");
+      const g = document.getElementById("lightGreen");
+
+      if (g.classList.contains("active")) {
+        g.classList.remove("active");
+        a.classList.add("active");
+        document.getElementById("signalTimer").innerText = "Phase Transition: Amber";
+      } else if (a.classList.contains("active")) {
+        a.classList.remove("active");
+        r.classList.add("active");
+        document.getElementById("signalTimer").innerText = "Red Phase: Cross-Traffic Clearance";
+      } else {
+        r.classList.remove("active");
+        g.classList.add("active");
+        document.getElementById("signalTimer").innerText = "Green Phase: Active Dynamic Flow";
+      }
+    }, 7000);
+  </script>
+</body>
+</html>
